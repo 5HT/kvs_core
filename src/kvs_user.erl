@@ -10,7 +10,8 @@
 
 metainfo() -> 
     #schema{name=kvs,tables=[
-        #table{name=user,container=feed,fields=record_info(fields,user),keys=[facebook_id,googleplus_id,twitter_id,github_id]}
+        #table{name=user,container=feed,fields=record_info(fields,user),
+                 keys=[facebook_id,googleplus_id,twitter_id,github_id]}
     ]}.
 
 handle_notice([kvs_user, user, registered], {_,_,#user{id=Who}=U}, #state{owner=Who}=State)->
