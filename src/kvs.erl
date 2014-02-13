@@ -181,9 +181,8 @@ traversal(RecordType, Start, Count, Direction)->
 
 entries(Name) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, undefined).
 entries(Name, Count) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, Count).
-entries({ok, Container}, RecordType, Count) -> entries(Container, RecordType, Count);
-entries(Container, RecordType, Count) when is_tuple(Container) -> traversal(RecordType, element(#container.top, Container), Count, #iterator.prev);
-entries(_,_,_) -> error_logger:info_msg("=> ENTRIES ARGS NOT MATCH!"), [].
+entries(Container, RecordType, Count) when is_tuple(Container) ->
+    traversal(RecordType, element(#container.top, Container), Count, #iterator.prev).
 
 entries(RecordType, Start, Count, Direction) ->
     E = traversal(RecordType, Start, Count, Direction),
