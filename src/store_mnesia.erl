@@ -40,7 +40,7 @@ put(Records) when is_list(Records) -> void(fun() -> lists:foreach(fun mnesia:wri
 put(Record) -> put([Record]).
 delete(Tab, Key) -> mnesia:transaction(fun()-> mnesia:delete({Tab, Key}) end), ok.
 count(RecordName) -> mnesia:table_info(RecordName, size).
-all(RecordName) -> flatten(fun() -> Lists = mnesia:all_keys(RecordName), [ mnesia:read({RecordName, G}) || G <- Lists ] end).
+all(R) -> flatten(fun() -> L= mnesia:all_keys(R), [ mnesia:read({R, G}) || G <- L ] end).
 next_id(RecordName, Incr) -> mnesia:dirty_update_counter({id_seq, RecordName}, Incr).
 flatten(Fun) -> case mnesia:transaction(Fun) of {atomic, R} -> lists:flatten(R); _ -> [] end.
 many(Fun) -> case mnesia:transaction(Fun) of {atomic, R} -> R; _ -> [] end.
