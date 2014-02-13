@@ -64,43 +64,43 @@ Configuring
 First of all you need to tune your backend in the kvs application:
 
 ```erlang
-    {kvs, {dba,store_kai}},
+{kvs, {dba,store_kai}},
 ```
 
 Try to check it:
 
 ```erlang
-    1> kvs:config(dba).
-    store_kai
+1> kvs:config(dba).
+store_kai
 
-    2> kvs:version().
-    {version,"KVS KAI PURE XEN"}
+2> kvs:version().
+{version,"KVS KAI PURE XEN"}
 ```
 
 Create database for single node:
 
 ```erlang
-    3> kvs:join().
+3> kvs:join().
 ```
 
 Create database joining to existing cluster:
 
 ```erlang
-    3> kvs:join('kvs@synrc.com').
+3> kvs:join('kvs@synrc.com').
 ```
 
 Check table packages included into the schema:
 
 ```erlang
-    4> kvs:dir().
-    [{table,"id_seq"},
-     {table,"subscription"}, <- 2i
-     {table,"feed"}, <- feed
-     {table,"comment"},
-     {table,"entry"},
-     {table,"access"},
-     {table,"acl"}, <- feed
-     {table,"user"}]
+4> kvs:dir().
+[{table,"id_seq"},
+ {table,"subscription"}, <- 2i
+ {table,"feed"}, <- feed
+ {table,"comment"},
+ {table,"entry"},
+ {table,"access"},
+ {table,"acl"}, <- feed
+ {table,"user"}]
 ```
 
 Operations
@@ -109,14 +109,14 @@ Operations
 Try to add some data:
 
 ```erlang
-    1> rr(kvs).
-    2> kvs:put(#user{id="maxim@synrc.com"}).
-    ok
-    3> kvs:get(user,"maxim@synrc.com").
-    #user{id = "maxim@synrc.com",container = feed,...}
-    4> kvs:put(#user{id="doxtop@synrc.com"}).
-    5> length(kvs:all(user)).
-    2
+1> rr(kvs).
+2> kvs:put(#user{id="maxim@synrc.com"}).
+ok
+3> kvs:get(user,"maxim@synrc.com").
+#user{id = "maxim@synrc.com",container = feed,...}
+4> kvs:put(#user{id="doxtop@synrc.com"}).
+5> length(kvs:all(user)).
+2
 ```
 
 Polymorphic Records
@@ -137,11 +137,11 @@ All record could be chained into the double-linked lists in the database.
 So you can inherit from the ITERATOR record just like that:
 
 ```erlang
-    -record(access, {?ITERATOR(acl),
-        entry_id,
-        acl_id,
-        accessor,
-        action}).
+-record(access, {?ITERATOR(acl),
+    entry_id,
+    acl_id,
+    accessor,
+    action}).
 ```
 
 The layout of iterators are following:
@@ -159,22 +159,22 @@ The layout of iterators are following:
 This means your table will support add/remove operations to lists.
 
 ```erlang
-    1> kvs:add(#user{id="mes@ua.fm"}).
-    2> kvs:add(#user{id="dox@ua.fm"}).
+1> kvs:add(#user{id="mes@ua.fm"}).
+2> kvs:add(#user{id="dox@ua.fm"}).
 ```
 
 Read the chain (undefined means all)
 
 ```erlang
-    3> kvs:entries(kvs:get(feed, users), user, undefined). TODO: fix acl container
-    [#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
+3> kvs:entries(kvs:get(feed, users), user, undefined). TODO: fix acl container
+[#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
 ```
 
 Read flat values by all keys from table:
 
 ```erlang
-    4> kvs:all(user).
-    [#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
+4> kvs:all(user).
+[#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
 ```
 
 Containers
@@ -197,27 +197,27 @@ Riak and KAI backends don't need it. Group you table into table packages
 represented as modules with handle_notice API.
 
 ```erlang
-    -module(kvs_feed).
-    -inclue_lib("kvs/include/kvs.hrl").
+-module(kvs_feed).
+-inclue_lib("kvs/include/kvs.hrl").
 
-    metainfo() -> 
-        #schema{name=kvs,tables=[
-        #table{name=entry,container=feed,fields=record_info(fields,entry),keys=[feed_id,entry_id,from]},
-        #table{name=comment,container=feed,fields=record_info(fields,comment),keys=[entry_id,author_id]},
-        #table{name=feed,container=true,fields=record_info(fields,feed)}
-        ]}.
+metainfo() -> 
+    #schema{name=kvs,tables=[
+    #table{name=entry,container=feed,fields=record_info(fields,entry),keys=[feed_id,entry_id,from]},
+    #table{name=comment,container=feed,fields=record_info(fields,comment),keys=[entry_id,author_id]},
+    #table{name=feed,container=true,fields=record_info(fields,feed)}
+    ]}.
 ```
 
 And plug it into schema config:
 
 ```erlang
-    {kvs, {schema,[kvs_user,kvs_acl,kvs_account,...,kvs_box]}},
+{kvs, {schema,[kvs_user,kvs_acl,kvs_account,...,kvs_box]}},
 ```
 
 And on database init
 
 ```erlang
-    1> kvs:join().
+1> kvs:join().
 ```
 
 It will create your custom schema.
