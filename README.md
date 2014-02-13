@@ -23,7 +23,7 @@ Overview
 This is database handling application that hides database access
 and provides high-level rich API to stored and extend following data:
 
-KVS CORE MSG
+KVS CORE
 
 * Acl
 * Users
@@ -32,7 +32,7 @@ KVS CORE MSG
 * Entries
 * Comments
 
-KVS SOCIAL
+KVS
 
 * Groups
 * Meetings
@@ -63,26 +63,35 @@ Configuring
 
 First of all you need to tune your backend in the kvs application:
 
+```erlang
     {kvs, {dba,store_kai}},
+```
 
 Try to check it:
 
+```erlang
     1> kvs:config(dba).
     store_kai
 
     2> kvs:version().
     {version,"KVS KAI PURE XEN"}
+```
 
 Create database for single node:
 
+```erlang
     3> kvs:join().
+```
 
 Create database joining to existing cluster:
 
+```erlang
     3> kvs:join('kvs@synrc.com').
+```
 
 Check table packages included into the schema:
 
+```erlang
     4> kvs:dir().
     [{table,"id_seq"},
      {table,"subscription"}, <- 2i
@@ -92,12 +101,14 @@ Check table packages included into the schema:
      {table,"access"},
      {table,"acl"}, <- feed
      {table,"user"}]
+```
 
 Operations
 ----------
 
 Try to add some data:
 
+```erlang
     1> rr(kvs).
     2> kvs:put(#user{id="maxim@synrc.com"}).
     ok
@@ -106,6 +117,7 @@ Try to add some data:
     4> kvs:put(#user{id="doxtop@synrc.com"}).
     5> length(kvs:all(user)).
     2
+```
 
 Polymorphic Records
 -------------------
@@ -124,11 +136,13 @@ Iterators
 All record could be chained into the double-linked lists in the database.
 So you can inherit from the ITERATOR record just like that:
 
+```erlang
     -record(access, {?ITERATOR(acl),
         entry_id,
         acl_id,
         accessor,
         action}).
+```
 
 The layout of iterators are following:
 
@@ -144,18 +158,24 @@ The layout of iterators are following:
 
 This means your table will support add/remove operations to lists.
 
+```erlang
     1> kvs:add(#user{id="mes@ua.fm"}).
     2> kvs:add(#user{id="dox@ua.fm"}).
-    
+```
+
 Read the chain (undefined means all)
-    
+
+```erlang
     3> kvs:entries(kvs:get(feed, users), user, undefined). TODO: fix acl container
     [#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
-    
+```
+
 Read flat values by all keys from table:
 
+```erlang
     4> kvs:all(user).
     [#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
+```
 
 Containers
 ----------
@@ -176,6 +196,7 @@ Usually you need only specify custom mnesia indexes and tables tuning.
 Riak and KAI backends don't need it. Group you table into table packages
 represented as modules with handle_notice API.
 
+```erlang
     -module(kvs_feed).
     -inclue_lib("kvs/include/kvs.hrl").
 
@@ -185,14 +206,19 @@ represented as modules with handle_notice API.
         #table{name=comment,container=feed,fields=record_info(fields,comment),keys=[entry_id,author_id]},
         #table{name=feed,container=true,fields=record_info(fields,feed)}
         ]}.
+```
 
 And plug it into schema config:
 
+```erlang
     {kvs, {schema,[kvs_user,kvs_acl,kvs_account,...,kvs_box]}},
+```
 
 And on database init
 
+```erlang
     1> kvs:join().
+```
 
 It will create your custom schema.
 
