@@ -1,6 +1,6 @@
 RELEASE := kvs_shell
 COOKIE  := node_runner
-APPS    := kvs
+APPS    := mnesia erts kernel stdlib sasl kvs
 VER     := 1.0.0
 PLT_NAME := ~/.kvs_dialyzer.plt
 VM      := rels/files/vm.args
