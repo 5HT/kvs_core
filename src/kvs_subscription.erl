@@ -1,9 +1,7 @@
 -module(kvs_subscription).
 -copyright('Synrc Research Center s.r.o.').
 -include("subscription.hrl").
--include("state.hrl").
 -include("user.hrl").
--include("kvs.hrl").
 -include("metainfo.hrl").
 -compile(export_all).
 

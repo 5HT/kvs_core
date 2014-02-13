@@ -2,9 +2,7 @@
 -copyright('Synrc Research Center s.r.o.').
 -include("user.hrl").
 -include("config.hrl").
--include("feed.hrl").
 -include("state.hrl").
--include("kvs.hrl").
 -include("metainfo.hrl").
 -compile(export_all).
 
