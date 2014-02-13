@@ -21,9 +21,9 @@ modules() ->
         E  -> E end.
 
 containers() ->
-    [ [ {T#table.name,T#table.fields}
+    lists:flatten([ [ {T#table.name,T#table.fields}
         || T=#table{container=true} <- (M:metainfo())#schema.tables ]
-    || M <- modules() ].
+    || M <- modules() ]).
 
 tables() -> lists:flatten([ (M:metainfo())#schema.tables || M <- modules() ]).
 
@@ -31,7 +31,7 @@ table(Name) -> lists:keyfind(Name,#table.name,tables()).
 
 init(Backend, Module) ->
     [ begin
-        store_mnesia:create_table(T#table.name, T#table.fields, [{storage, permanent}]),
+        Backend:create_table(T#table.name, T#table.fields, [{storage, permanent}]),
         [ Backend:add_table_index(T#table.name, Key) || Key <- T#table.keys ]
     end || T <- (Module:metainfo())#schema.tables ].
 
@@ -179,10 +179,8 @@ traversal(RecordType, Start, Count, Direction)->
                 Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
                 [R | traversal(RecordType, Prev, Count1, Direction)] end.
 
-entries(RecordType, Count) -> 
-    Name = element(1,RecordType),
-    Table = kvs:table(Name),
-    entries(kvs:get(Table#table.container,Name), RecordType, Count).
+entries(Name) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, undefined).
+entries(Name, Count) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, Count).
 
 entries({ok, Container}, RecordType, Count) -> entries(Container, RecordType, Count);
 entries(Container, RecordType, Count) when is_tuple(Container) -> traversal(RecordType, element(#container.top, Container), Count, #iterator.prev);
