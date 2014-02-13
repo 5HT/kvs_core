@@ -111,7 +111,7 @@ Iterators
 All record could be chained into the double-linked lists in the database.
 So you can inherit from the ITERATOR record just like that:
 
-    -record(acl_entry, {?ITERATOR(acl),
+    -record(access, {?ITERATOR(acl),
         entry_id,
         acl_id,
         accessor,
@@ -136,7 +136,7 @@ This means your table will support add/remove operations to lists.
     
 Read the chain (undefined means all)
     
-    3> kvs:entries(kvs:get(feed, users), user, undefined).
+    3> kvs:entries(kvs:get(feed, users), user, undefined). TODO: fix acl container
     [#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
     
 Read flat values by all keys from table:
@@ -163,18 +163,15 @@ Usually you need only specify custom mnesia indexes and tables tuning.
 Riak and KAI backends don't need it. Group you table into table packages
 represented as modules with handle_notice API.
 
-    -module(kvs_box).
+    -module(kvs_feed).
     -inclue_lib("kvs/include/kvs.hrl").
-    -record(box,{id,user,email}).
-    -record(box_subscription,{who,whom}).
-    init(Backend=store_mnesia) ->
-        ?CREATE_TAB(box),
-        ?CREATE_TAB(box_subscription),
-        Backend:add_table_index(box, user),
-        Backend:add_table_index(box, email),
-        Backend:add_table_index(box_subscription, who),
-        Backend:add_table_index(box_subscription, whom);
-    init(_) -> ok.
+
+    metainfo() -> 
+        #schema{name=kvs,tables=[
+        #table{name=entry,container=feed,fields=record_info(fields,entry),keys=[feed_id,entry_id,from]},
+        #table{name=comment,container=feed,fields=record_info(fields,comment),keys=[entry_id,author_id]},
+        #table{name=feed,container=true,fields=record_info(fields,feed)}
+        ]}.
 
 And plug it into schema config:
 
