@@ -202,12 +202,11 @@ represented as modules with handle_notice API.
 
 metainfo() -> 
     #schema{name=kvs,tables=[
-    #table{ name=entry,container=feed,fields=record_info(fields,entry),
-            keys=[feed_id,entry_id,from]},
-    #table{name=comment,container=feed,fields=record_info(fields,comment),
-            keys=[entry_id,author_id]},
-    #table{name=feed,container=true,fields=record_info(fields,feed)}
-    ]}.
+        #table{name=feed,container=true,fields=record_info(fields,feed)},
+        #table{ name=entry,container=feed,fields=record_info(fields,entry),
+                keys=[feed_id,entry_id,from]},
+        #table{name=comment,container=feed,fields=record_info(fields,comment),
+                keys=[entry_id,author_id]} ]}.
 ```
 
 And plug it into schema config:
