@@ -15,10 +15,7 @@ metainfo() ->
     ]}.
 
 define_access(Accessor, Resource, Action) -> 
-    Entry = #access{ id = {Accessor, Resource},
-                     accessor= Accessor,
-                     action  = Action,
-                     feed_id = Resource},
+    Entry = #access{ id={Accessor, Resource}, accessor=Accessor, action=Action, feed_id=Resource},
     case kvs:add(Entry) of {error, exist} -> kvs:put(Entry#access{action=Action}); {ok, E} -> E end.
 
 check(Keys) ->
@@ -63,5 +60,4 @@ check_access(#user{id = AId, type = AType}, {feature, _Feature} = R) ->
 check_access(UId, {feature, _Feature} = Resource) ->
     case kvs:get(user, UId) of
         {ok, User} -> check_access(User, Resource);
-        E -> E
-    end.
+        E -> E end.

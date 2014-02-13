@@ -3,7 +3,6 @@
 -include("subscription.hrl").
 -include("state.hrl").
 -include("user.hrl").
--include("config.hrl").
 -include("kvs.hrl").
 -include("metainfo.hrl").
 -compile(export_all).
@@ -14,10 +13,7 @@ metainfo() ->
         #table{name=id_seq,fields=record_info(fields,id_seq),keys=[thing]}
     ]}.
 
-subscribe(Who, Whom) ->
-    Record = #subscription{who = Who, whom = Whom},
-    kvs:put(Record).
-
+subscribe(Who, Whom) -> kvs:put(#subscription{key={who,whom},who = Who, whom = Whom}).
 unsubscribe(Who, Whom) ->
     case subscribed(Who, Whom) of
         true  -> kvs:delete(subscription, {Who, Whom});
@@ -25,10 +21,8 @@ unsubscribe(Who, Whom) ->
 
 subscriptions(undefined)-> [];
 subscriptions(#user{username = UId}) -> subscriptions(UId);
-
-subscriptions(UId) -> DBA=?DBA, DBA:subscriptions(UId).
-subscribed(Who) -> DBA=?DBA, DBA:subscribed(Who).
-
+subscriptions(UId) -> kvs:index(subscription, who, UId).
+subscribed(Who) -> kvs:index(subscription, whom, Who).
 subscribed(Who, Whom) ->
     case kvs:get(subscription, {Who, Whom}) of
         {ok, _} -> true;

@@ -1,6 +1,6 @@
 
 -record(subscription,{
-        type,
+        key,
         who,
         whom,
         what,

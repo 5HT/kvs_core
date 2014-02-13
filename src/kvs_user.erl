@@ -17,9 +17,9 @@ handle_notice([kvs_user, user, registered], {_,_,#user{id=Who}=U}, #state{owner=
     {noreply, State};
 
 handle_notice([kvs_user, user, Owner, delete], [#user{}=U], #state{owner=Owner}=State) ->
-    error_logger:info_msg("[kvs_user] Delete user ~p", [U]),
+    kvs:info("delete user: ~p", [U]),
     {noreply, State};
 
 handle_notice(Route, Message, State) -> 
-    error_logger:info_msg("[kvs_user] Unknown notice"),
+    kvs:info("unknown user notice"),
     {noreply, State}.

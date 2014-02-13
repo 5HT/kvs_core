@@ -26,6 +26,9 @@ comments_count([E|T], Acc) ->
             + comments_count(kvs:entries(Feed, comment, undefined), 0) end end,
     comments_count(T,  C + Acc).
 
+author_comments(Who) ->
+    EIDs = [E || #comment{entry_id=E} <- kvs:index(comment,from, Who) ],
+    lists:flatten([ kvs:index(entry, id,EID) || EID <- EIDs]).
 
 %% MQ API
 
@@ -59,8 +62,8 @@ handle_notice([kvs_feed, Owner, entry, delete],
     case lists:keyfind(Fid,2,Feeds) of false -> ok;
     _ ->
         error_logger:info_msg("[kvs_feed] => Remove entry ~p from feed ~p", [Id, Fid]),
-        Removed = case kvs:remove(entry, Id) of {error,Er}->{error, Er}; ok -> E end,
-        msg:notify([kvs_feed, entry, Id, deleted], [Removed]) end,
+        kvs:remove(entry, Id),
+        msg:notify([kvs_feed, entry, Id, deleted], [E]) end,
 
     {noreply,State};
 
@@ -72,8 +75,9 @@ handle_notice([kvs_feed, Owner, delete],
     [msg:notify([kvs_feed, To, entry, delete],[Ed])
         || #entry{to={_, To}}=Ed <- kvs:all_by_index(entry, entry_id, Eid)],
 
-    Fid = element(1,E), %?FEED(entry),
-    Removed = case kvs:remove(entry,{Eid, Fid}) of {error,X} -> {error,X}; ok -> E#entry{id={Eid,Fid},feed_id=Fid} end,
+    Fid = element(1,E),
+    kvs:remove(entry,{Eid, Fid}),
+    Removed = E#entry{id={Eid,Fid},feed_id=Fid},
     msg:notify([kvs_feed, entry, {Eid, Fid}, deleted], [Removed]),
 
     {noreply, State};
@@ -102,7 +106,8 @@ add_entry(Eid,Fid,Entry) ->
     msg:notify([kvs_feed, entry, {Eid, Fid}, added], [Added]).
 
 update_entry(Eid,Fid,Entry) ->
-    case kvs:get(entry, {Eid,Fid}) of false -> skip;
+    case kvs:get(entry, {Eid,Fid}) of
+    {error,_} -> skip;
     {ok, E} ->
         error_logger:info_msg("[kvs_feed] => Update entry ~p in ~p", [Eid, Fid]),
         Upd = E#entry{description=Entry#entry.description,

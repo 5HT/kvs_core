@@ -17,7 +17,7 @@ join(Node) -> DBA = ?DBA, DBA:join(Node).
 
 modules() ->
     Modules = case kvs:config(schema) of
-        [] -> [ kvs_user, kvs_feed, kvs_acl ];
+        [] -> [ kvs_user, kvs_feed, kvs_acl, kvs_subscription ];
         E  -> E end.
 
 containers() ->
@@ -31,8 +31,9 @@ table(Name) -> lists:keyfind(Name,#table.name,tables()).
 
 init(Backend, Module) ->
     [ begin
-        Backend:create_table(T#table.name, T#table.fields, [{storage, permanent}]),
-        [ Backend:add_table_index(T#table.name, Key) || Key <- T#table.keys ]
+        Backend:create_table(T#table.name, [{attributes,T#table.fields},{disc_copies, [node()]}]),
+        [ begin kvs:info("INDEX: ~p ~p",[T#table.name,Key]),
+                Backend:add_table_index(T#table.name, Key) end || Key <- T#table.keys ]
     end || T <- (Module:metainfo())#schema.tables ].
 
 create(ContainerName) ->
@@ -47,7 +48,6 @@ add(Record) when is_tuple(Record) ->
     Id = element(#iterator.id, Record),
 
     case kvs:get(element(1,Record), Id) of
-        {ok, _} -> error_logger:info_msg("Entry exist: ~p", [Id]),{error, exist};
         {error, not_found} ->
 
             Type = element(1, Record),
@@ -97,11 +97,11 @@ add(Record) when is_tuple(Record) ->
 
                     kvs:put(R3),
 
-                    error_logger:info_msg("[kvs] PUT: ~p", [element(#container.id,R3)]),
+                    kvs:info("put: ~p", [element(#container.id,R3)]),
 
                     {ok, R3}
             end;
-        E ->  error_logger:info_msg("Entry exist: ~p", [E]),{error, exist} end.
+        {ok, _} -> kvs:info("entry exist while put: ~p", [Id]), {error, exist} end.
 
 remove(RecordName, RecordId) ->
     case kvs:get(RecordName, RecordId) of
@@ -181,7 +181,6 @@ traversal(RecordType, Start, Count, Direction)->
 
 entries(Name) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, undefined).
 entries(Name, Count) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, Count).
-
 entries({ok, Container}, RecordType, Count) -> entries(Container, RecordType, Count);
 entries(Container, RecordType, Count) when is_tuple(Container) -> traversal(RecordType, element(#container.top, Container), Count, #iterator.prev);
 entries(_,_,_) -> error_logger:info_msg("=> ENTRIES ARGS NOT MATCH!"), [].
@@ -193,15 +192,13 @@ entries(RecordType, Start, Count, Direction) ->
 init_db() ->
     case kvs:get(id_seq,"feed") of
         {error,_} -> add_seq_ids();
-        {ok,_} -> ignore end.
+        {ok,_} -> skip end.
 
 add_seq_ids() ->
     Init = fun(Key) ->
            case kvs:get(id_seq, Key) of
                 {error, _} -> ok = kvs:put(#id_seq{thing = Key, id = 0});
-                {ok, _} -> ignore
-           end
-    end,
+                {ok, _} -> skip end end,
     [ Init(atom_to_list(Name)) || {Name,Fields} <- containers() ].
 
 version() -> DBA=?DBA, DBA:version().
@@ -227,15 +224,10 @@ get(RecordName, Key, Default) ->
 
 delete(Keys) -> DBA=?DBA, DBA:delete(Keys).
 delete(Tab, Key) -> DBA=?DBA,DBA:delete(Tab, Key).
-delete_by_index(Tab, IndexId, IndexVal) -> DBA=?DBA,DBA:delete_by_index(Tab, IndexId, IndexVal).
-multi_select(RecordName, Keys) -> DBA=?DBA,DBA:multi_select(RecordName, Keys).
-select(From, PredicateFunction) -> DBA=?DBA, DBA:select(From, PredicateFunction).
 count(RecordName) -> DBA=?DBA,DBA:count(RecordName).
 all(RecordName) -> DBA=?DBA,DBA:all(RecordName).
-all_by_index(RecordName, Index, IndexValue) -> DBA=?DBA,DBA:all_by_index(RecordName, Index, IndexValue).
-next_id(RecordName) -> DBA=?DBA,DBA:next_id(RecordName).
+index(RecordName, Key, Value) -> DBA=?DBA,DBA:index(RecordName, Key, Value).
 next_id(RecordName, Incr) -> DBA=?DBA,DBA:next_id(RecordName, Incr).
-next_id(RecordName, Default, Incr) -> DBA=?DBA,DBA:next_id(RecordName, Default, Incr).
 
 save_db(Path) ->
     Data = lists:append([all(B) || B <- [list_to_atom(Name) || {table,Name} <- kvs:dir()] ]),
@@ -257,34 +249,15 @@ load(Key) ->
     {ok, Bin} = file:read_file(Key),
     binary_to_term(Bin).
 
-coalesce(undefined, B) -> B;
-coalesce(A, _) -> A.
-
-uuid() ->
-  R1 = random:uniform(round(math:pow(2, 48))) - 1,
-  R2 = random:uniform(round(math:pow(2, 12))) - 1,
-  R3 = random:uniform(round(math:pow(2, 32))) - 1,
-  R4 = random:uniform(round(math:pow(2, 30))) - 1,
-  R5 = erlang:phash({node(), now()}, round(math:pow(2, 32))),
-
-  UUIDBin = <<R1:48, 4:4, R2:12, 2:2, R3:32, R4: 30>>,
-  <<TL:32, TM:16, THV:16, CSR:8, CSL:8, N:48>> = UUIDBin,
-
-  lists:flatten(io_lib:format("~8.16.0b-~4.16.0b-~4.16.0b-~2.16.0b~2.16.0b-~12.16.0b-~8.16.0b",
-                              [TL, TM, THV, CSR, CSL, N, R5])).
-uuname() ->
-  lists:flatten(io_lib:format("~8.16.0b",[erlang:phash2({node(), now()}, round(math:pow(2, 32)))])).
-
-sha(Raw) ->
-    lists:flatten([io_lib:format("~2.16.0b", [N]) || <<N>> <= crypto:sha(Raw)]).
-
-sha_upper(Raw) ->
-    SHA = sha(Raw),
-    string:to_upper(SHA).
-
 config(Key) -> config(kvs, Key, "").
 config(App,Key) -> config(App,Key, "").
 config(App, Key, Default) -> case application:get_env(App,Key) of
                               undefined -> Default;
                               {ok,V} -> V end.
 
+info(String, Args) ->  error_logger:info_msg(lists:flatten(["[kvs]",32,String]), Args).
+info(String) -> error_logger:info_msg(lists:flatten(["[kvs]",32,String])).
+warning(String, Args) -> error_logger:warning_msg(lists:flatten(["[kvs]",32,String]), Args).
+warning(String) -> error_logger:warning_msg(lists:flatten(["[kvs]",32,String])).
+error(String, Args) -> error_logger:error_msg(lists:flatten(["[kvs]",32,String]), Args).
+error(String) -> error_logger:error_msg(lists:flatten(["[kvs]",32,String])).
