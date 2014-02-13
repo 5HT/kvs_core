@@ -1,5 +1,5 @@
-KVS: Data Framework for KV Stores
-=================================
+KVS: Erlang Abstract Term Database
+==================================
 
 Online Presentation: http://slid.es/maximsokhatsky/kvs
 
@@ -23,21 +23,27 @@ Overview
 This is database handling application that hides database access
 and provides high-level rich API to stored and extend following data:
 
+KVS CORE MSG
+
 * Acl
 * Users
-* Groups
 * Subscriptions
 * Feeds
+* Entries
 * Comments
+
+KVS SOCIAL
+
+* Groups
 * Meetings
 * Accounts
 * Payments
 * Products
 * Purchases
 
-This Framework provides also a Plugin for Feed Server for sequential consistency.
-All write requests with given object keys will be handled by single processes
-in Feed Server so you may not worry about concurrent changes of user feeds.
+This Framework provides also a Feed Server Plugin for sequential consistency.
+All write requests with given object key will be handled by single processes
+in Feed Server so you may not worry about concurrent changes of user feed tops.
 
 All write operations that are made to data with secondary indexes,
 i.e. not like linked lists could be potentially handled without feed_server.
@@ -63,6 +69,7 @@ Try to check it:
 
     1> kvs:config(dba).
     store_kai
+
     2> kvs:version().
     {version,"KVS KAI PURE XEN"}
 
@@ -77,8 +84,14 @@ Create database joining to existing cluster:
 Check table packages included into the schema:
 
     4> kvs:dir().
-    [kvs_user,kvs_product,kvs_membership,kvs_payment,kvs_feed,
-     kvs_acl,kvs_account,kvs_group]
+    [{table,"id_seq"},
+     {table,"subscription"}, <- 2i
+     {table,"feed"}, <- feed
+     {table,"comment"},
+     {table,"entry"},
+     {table,"access"},
+     {table,"acl"}, <- feed
+     {table,"user"}]
 
 Operations
 ----------
