@@ -72,7 +72,7 @@ handle_notice([kvs_feed, Owner, delete],
     error_logger:info_msg("[kvs_feed] Delete all entries ~p ~p", [E#entry.entry_id, Owner]),
 
     [msg:notify([kvs_feed, To, entry, delete],[Ed])
-        || #entry{to={_, To}}=Ed <- kvs:all_by_index(entry, entry_id, Eid)],
+        || #entry{to={_, To}}=Ed <- kvs:index(entry, entry_id, Eid)],
 
     Fid = element(1,E),
     kvs:remove(entry,{Eid, Fid}),
