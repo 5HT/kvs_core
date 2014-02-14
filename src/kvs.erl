@@ -1,40 +1,45 @@
 -module(kvs).
 -author('Synrc Research Center s.r.o.').
+-compile(export_all).
+
 -include("config.hrl").
 -include("metainfo.hrl").
 -include("state.hrl").
 -include("kvs.hrl").
 -include_lib("stdlib/include/qlc.hrl").
--compile(export_all).
+
+% NOTE: API Documentation
+
+-export([start/0,stop/0]).                                        % service
+-export([destroy/0,join/0,join/1,init_db/0,init/2]).              % schema change
+-export([modules/0,containers/0,tables/0,table/1,version/0]).     % meta info
+-export([create/1,add/1,remove/2,remove/1]).                      % chain ops
+-export([put/1,delete/1,delete/2,next_id/2]).                     % raw ops
+-export([get/1,get/2,index/3]).                                   % read ops
+-export([load_db/1,save_db/1]).                                   % import/export
 
 start() -> DBA = ?DBA, DBA:start().
-dir() -> DBA = ?DBA, DBA:dir().
 stop() -> DBA = ?DBA, DBA:stop().
-initialize() -> DBA = ?DBA, DBA:initialize().
-delete() -> DBA = ?DBA, DBA:delete().
+
+destory() -> DBA = ?DBA, DBA:destroy().
 join() -> DBA = ?DBA, DBA:join().
 join(Node) -> DBA = ?DBA, DBA:join(Node).
-
-modules() ->
-    Modules = case kvs:config(schema) of
-        [] -> [ kvs_user, kvs_feed, kvs_acl, kvs_subscription ];
-        E  -> E end.
-
-containers() ->
-    lists:flatten([ [ {T#table.name,T#table.fields}
-        || T=#table{container=true} <- (M:metainfo())#schema.tables ]
-    || M <- modules() ]).
-
-tables() -> lists:flatten([ (M:metainfo())#schema.tables || M <- modules() ]).
-
-table(Name) -> lists:keyfind(Name,#table.name,tables()).
-
 init(Backend, Module) ->
     [ begin
         Backend:create_table(T#table.name, [{attributes,T#table.fields},{disc_copies, [node()]}]),
         [ Backend:add_table_index(T#table.name, Key) || Key <- T#table.keys ],
         T
     end || T <- (Module:metainfo())#schema.tables ].
+
+version() -> DBA=?DBA, DBA:version().
+tables() -> lists:flatten([ (M:metainfo())#schema.tables || M <- modules() ]).
+table(Name) -> lists:keyfind(Name,#table.name,tables()).
+dir() -> DBA = ?DBA, DBA:dir().
+modules() -> kvs:config(schema).
+containers() ->
+    lists:flatten([ [ {T#table.name,T#table.fields}
+        || T=#table{container=true} <- (M:metainfo())#schema.tables ]
+    || M <- modules() ]).
 
 create(ContainerName) ->
     Id = kvs:next_id(atom_to_list(ContainerName), 1),
@@ -201,7 +206,6 @@ add_seq_ids() ->
                 {ok, _} -> {Key,skip} end end,
     [ Init(atom_to_list(Name))  || {Name,Fields} <- containers() ].
 
-version() -> DBA=?DBA, DBA:version().
 
 put(Record) ->
     DBA=?DBA,
