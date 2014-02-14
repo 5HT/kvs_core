@@ -1,7 +1,8 @@
 -module(kvs).
--author('Synrc Research Center s.r.o.').
+    -author('Synrc Research Center s.r.o.').
 -compile(export_all).
 
+-include("api.hrl").
 -include("config.hrl").
 -include("metainfo.hrl").
 -include("state.hrl").
@@ -43,7 +44,7 @@ containers() ->
 
 create(ContainerName) ->
     Id = kvs:next_id(atom_to_list(ContainerName), 1),
-    Instance = list_to_tuple([ContainerName|proplists:get_value(ContainerName, ?CONTAINERS)]),
+    Instance = list_to_tuple([ContainerName|proplists:get_value(ContainerName, kvs:containers())]),
     Top = setelement(#container.id,Instance,Id),
     ok = kvs:put(Top),
     Id.
@@ -58,14 +59,15 @@ add(Record) when is_tuple(Record) ->
             Type = element(1, Record),
             CName = element(#iterator.container, Record),
             Cid = case element(#iterator.feed_id, Record) of
-                undefined -> element(1,Record); %?FEED(Type);
+                undefined -> element(1,Record);
                 Fid -> Fid end,
 
             Container = case kvs:get(CName, Cid) of
                 {ok,C} -> C;
                 {error, not_found} when Cid /= undefined ->
 
-                    NC = setelement(#container.id,list_to_tuple([CName|proplists:get_value(CName, ?CONTAINERS)]), Cid),
+                    NC = setelement(#container.id,
+                            list_to_tuple([CName|proplists:get_value(CName, kvs:containers())]), Cid),
                     NC1 = setelement(#container.entries_count, NC, 0),
 
                     kvs:put(NC1),NC1;
@@ -86,7 +88,8 @@ add(Record) when is_tuple(Record) ->
                                 element(#iterator.id, NewTop) end end,
 
                     C1 = setelement(#container.top, Container, Id),
-                    C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)+1),
+                    C2 = setelement(#container.entries_count, C1,
+                            element(#container.entries_count, Container)+1),
 
                     kvs:put(C2),
 

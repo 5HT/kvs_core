@@ -16,7 +16,10 @@ metainfo() ->
 
 define_access(Accessor, Resource, Action) -> 
     Entry = #access{ id={Accessor, Resource}, accessor=Accessor, action=Action},
-    case kvs:add(Entry) of {error, exist} -> kvs:put(Entry#access{action=Action}); {ok, E} -> E end.
+    case kvs:add(Entry) of
+        {error, exist} -> kvs:put(Entry#access{action=Action});
+        {error, no_container} -> skip;
+        {ok, E} -> E end.
 
 check(Keys) ->
     Acls = [Acl || {ok, Acl = #access{}} <- [kvs:get(access, Key) || Key <- Keys]],
