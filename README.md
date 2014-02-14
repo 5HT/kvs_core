@@ -81,6 +81,10 @@ Create database for single node:
 
 ```erlang
 3> kvs:join().
+[kvs] Mnesia Init
+ok
+4> kvs:init_db().
+
 ```
 
 Create database joining to existing cluster:
@@ -156,7 +160,7 @@ The layout of iterators are following:
     8 guard,      -- aux field
     9 ...
 
-This means your table will support add/remove operations to lists.
+This means your table will support add/remove linked list operations to lists.
 
 ```erlang
 1> kvs:add(#user{id="mes@ua.fm"}).
@@ -166,7 +170,14 @@ This means your table will support add/remove operations to lists.
 Read the chain (undefined means all)
 
 ```erlang
-3> kvs:entries(kvs:get(feed, users), user, undefined). TODO: fix acl container
+3> kvs:entries(kvs:get(feed, user), user, undefined).
+[#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
+```
+
+or just
+
+```erlang
+4> kvs:entries(user).
 [#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
 ```
 
@@ -212,7 +223,7 @@ metainfo() ->
 And plug it into schema config:
 
 ```erlang
-{kvs, {schema,[kvs_user,kvs_acl,kvs_account,...,kvs_box]}},
+{kvs, {schema,[kvs_user,kvs_acl,kvs_feed,kvs_subscription]}},
 ```
 
 And on database init

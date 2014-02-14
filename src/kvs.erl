@@ -32,8 +32,8 @@ table(Name) -> lists:keyfind(Name,#table.name,tables()).
 init(Backend, Module) ->
     [ begin
         Backend:create_table(T#table.name, [{attributes,T#table.fields},{disc_copies, [node()]}]),
-        [ begin kvs:info("INDEX: ~p ~p",[T#table.name,Key]),
-                Backend:add_table_index(T#table.name, Key) end || Key <- T#table.keys ]
+        [ Backend:add_table_index(T#table.name, Key) || Key <- T#table.keys ],
+        T
     end || T <- (Module:metainfo())#schema.tables ].
 
 create(ContainerName) ->
@@ -197,9 +197,9 @@ init_db() ->
 add_seq_ids() ->
     Init = fun(Key) ->
            case kvs:get(id_seq, Key) of
-                {error, _} -> ok = kvs:put(#id_seq{thing = Key, id = 0});
-                {ok, _} -> skip end end,
-    [ Init(atom_to_list(Name)) || {Name,Fields} <- containers() ].
+                {error, _} -> {Key,kvs:put(#id_seq{thing = Key, id = 0})};
+                {ok, _} -> {Key,skip} end end,
+    [ Init(atom_to_list(Name))  || {Name,Fields} <- containers() ].
 
 version() -> DBA=?DBA, DBA:version().
 
