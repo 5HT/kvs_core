@@ -226,7 +226,7 @@ It will create your custom schema.
 Business Logic
 --------------
 
-Here is Consumer behavior handlers of KVS FEED module
+Here is Consumer behavior handlers of KVS FEED supervised processes
 
 ```erlang
 handle_notice(  [kvs_feed,user,Owner,entry,Eid,add],
