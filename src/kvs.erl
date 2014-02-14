@@ -105,15 +105,15 @@ add(Record) when is_tuple(Record) ->
 
                     kvs:put(R3),
 
-                    kvs:info("[kvs] put: ~p", [element(#container.id,R3)]),
+                    kvs:info("[kvs] put: ~p~n", [element(#container.id,R3)]),
 
                     {ok, R3}
             end;
-        {ok, _} -> kvs:info("[kvs] entry exist while put: ~p", [Id]), {error, exist} end.
+        {ok, _} -> kvs:info("[kvs] entry exist while put: ~p~n", [Id]), {error, exist} end.
 
 remove(RecordName, RecordId) ->
     case kvs:get(RecordName, RecordId) of
-        {error, not_found} -> error_logger:info_msg("not found");
+        {error, not_found} -> ksv:error("[kvs] can't remove ~p~n",[{RecordName,RecordId}]);
         {ok, E} ->
 
             Id = element(#iterator.id, E),
