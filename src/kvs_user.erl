@@ -20,6 +20,6 @@ handle_notice([kvs_user, user, Owner, delete], [#user{}=U], #state{owner=Owner}=
     kvs:info("[kvs_user] delete user: ~p", [U]),
     {noreply, State};
 
-handle_notice(Route, Message, State) -> 
+handle_notice(_Route, _Message, State) -> 
     kvs:info("[kvs_user] unknown notice."),
     {noreply, State}.

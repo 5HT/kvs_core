@@ -24,7 +24,7 @@ check(Keys) ->
         [] -> none;
         [#access{action = Action} | _] -> Action end.
 
-check_access(#user{id = Id, type = Type}, Feature) ->
+check_access(#user{id = Id}, Feature) ->
     Query = [ {{user,Id},Feature} ],
     check(Query);
 

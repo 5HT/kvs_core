@@ -51,21 +51,21 @@ handle_notice(  [kvs_feed,_,Owner,entry,{Eid, FeedName},edit],
 
                 {noreply, S};
 
-handle_notice(  [kvs_feed,user,Owner,entry,Eid,edit],
+handle_notice(  [kvs_feed,_,Owner,entry,Eid,edit],
                 [#entry{feed_id=Fid}=Entry],
-                #state{owner=Owner,feeds=Feeds}) ->
+                #state{owner=Owner,feeds=Feeds}=State) ->
 
                 case lists:keyfind(Fid, 2, Feeds) of
                     false -> skip;
                     {_,_} -> update_entry(Eid,Fid,Entry) end,
 
-                {noreply, S};
+                {noreply, State};
 
-handle_notice(  [kvs_feed, Owner, entry, delete],
+handle_notice(  [kvs_feed,_,entry,delete],
                 [#entry{id=Id,feed_id=Fid}=E],
-                #state{feeds=Feeds}) ->
-                kvs:info("[kvs_feed] delete entry ~p",[Id]),
+                #state{feeds=Feeds}=State) ->
 
+                kvs:info("[kvs_feed] delete entry ~p",[Id]),
                 case lists:keyfind(Fid,2,Feeds) of
                     false -> ok;
                     _ -> kvs:info("[kvs_feed] => Remove entry ~p from feed ~p", [Id, Fid]),
@@ -90,15 +90,15 @@ handle_notice(  [kvs_feed, Owner, delete],
 
                 {noreply, State};
 
-handle_notice(  [kvs_feed,_,Owner, comment, Cid, add],
-                [#comment{id={Cid, {_, EFid}, _}}=C],
-                 #state{feeds=Feeds}) ->
+handle_notice(  [kvs_feed,_,_,comment,Cid,add],
+                [#comment{id={Cid,{_, EFid}, _}}=C],
+                #state{feeds=Feeds}=State) ->
 
                 case lists:keyfind(EFid,2,Feeds) of
                     false -> skip;
                     {_,_}-> add_comment(C) end,
 
-                {noreply, S};
+                {noreply, State};
 
 handle_notice(_Route, _Message, State) ->
     {noreply, State}.
