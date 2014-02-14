@@ -37,6 +37,6 @@ tar:
 eunit:
 	rebar eunit skip_deps=true
 ct:
-	rebar ct skip_deps=true verbose=1
+	rebar ct verbose=1
 
 .PHONY: delete-deps get-deps compile clean console start attach release update-deps dialyze ct eunit tar
