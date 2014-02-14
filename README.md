@@ -233,28 +233,28 @@ handle_notice(  [kvs_feed,user,Owner,entry,Eid,add],
                 [#entry{feed_id=Fid}=Entry],
                 #state{feeds=Feeds}) ->
 
-    case lists:keyfind(Fid,2, S#state.feeds) of
-        false -> skip;
-        {_,_} -> add_entry(Eid,Fid,Entry) end,
-    {noreply, S};
+                case lists:keyfind(Fid,2, S#state.feeds) of
+                    false -> skip;
+                    {_,_} -> add_entry(Eid,Fid,Entry) end,
+                {noreply, S};
 
 handle_notice(  [kvs_feed,user,Owner,entry,{Eid,FeedName},edit],
                 [#entry{feed_id=Fid}=Entry],
                 #state{feeds=Feeds}) ->
 
-    case lists:keyfind(FeedName,1,Feeds) of
-        false -> skip;
-        {_,Fid}-> update_entry(Eid,Fid,Entry) end,
-    {noreply, S};
+                case lists:keyfind(FeedName,1,Feeds) of
+                    false -> skip;
+                    {_,Fid}-> update_entry(Eid,Fid,Entry) end,
+                {noreply, S};
 
 handle_notice(  [kvs_feed,user,Owner,entry,Eid,edit],
                 [#entry{feed_id=Fid}=Entry],
                 #state{feeds=Feeds}) ->
 
-    case lists:keyfind(Fid, 2, Feeds) of
-        false -> skip;
-        {_,_} -> update_entry(Eid,Fid,Entry) end,
-    {noreply, S};
+                case lists:keyfind(Fid, 2, Feeds) of
+                    false -> skip;
+                    {_,_} -> update_entry(Eid,Fid,Entry) end,
+                {noreply, S};
 ```
 
 Here is the private implementation
