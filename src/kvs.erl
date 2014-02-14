@@ -97,11 +97,11 @@ add(Record) when is_tuple(Record) ->
 
                     kvs:put(R3),
 
-                    kvs:info("put: ~p", [element(#container.id,R3)]),
+                    kvs:info("[kvs] put: ~p", [element(#container.id,R3)]),
 
                     {ok, R3}
             end;
-        {ok, _} -> kvs:info("entry exist while put: ~p", [Id]), {error, exist} end.
+        {ok, _} -> kvs:info("[kvs] entry exist while put: ~p", [Id]), {error, exist} end.
 
 remove(RecordName, RecordId) ->
     case kvs:get(RecordName, RecordId) of
@@ -135,7 +135,7 @@ remove(RecordName, RecordId) ->
 
             kvs:put(C2),
 
-            error_logger:info_msg("[kvs] DELETE: ~p id: ~p", [RecordName, Id]),
+            kvs:info("[kvs] delete: ~p id: ~p~n", [RecordName, Id]),
 
             kvs:delete(RecordName, Id) end.
 
@@ -167,7 +167,7 @@ remove(E) when is_tuple(E) ->
 
     kvs:put(C2),
 
-    error_logger:info_msg("[kvs] DELETE: ~p", [Id]),
+    kvs:info("[kvs] delete: ~p", [Id]),
 
     kvs:delete(E).
 
@@ -215,10 +215,10 @@ get(RecordName, Key, Default) ->
     DBA=?DBA,
     case DBA:get(RecordName, Key) of
         {ok,{RecordName,Key,Value}} ->
-            error_logger:info_msg("db:get config value ~p,", [{RecordName, Key, Value}]),
+            kvs:info("[kvs] get config value: ~p~n", [{RecordName, Key, Value}]),
             {ok,Value};
         {error, _B} ->
-            error_logger:info_msg("db:get new config value ~p,", [{RecordName, Key, Default}]),
+            kvs:info("[kvs] new config value: ~p~n", [{RecordName, Key, Default}]),
             DBA:put({RecordName,Key,Default}),
             {ok,Default} end.
 
@@ -255,9 +255,9 @@ config(App, Key, Default) -> case application:get_env(App,Key) of
                               undefined -> Default;
                               {ok,V} -> V end.
 
-info(String, Args) ->  error_logger:info_msg(lists:flatten(["[kvs]",32,String]), Args).
-info(String) -> error_logger:info_msg(lists:flatten(["[kvs]",32,String])).
-warning(String, Args) -> error_logger:warning_msg(lists:flatten(["[kvs]",32,String]), Args).
-warning(String) -> error_logger:warning_msg(lists:flatten(["[kvs]",32,String])).
-error(String, Args) -> error_logger:error_msg(lists:flatten(["[kvs]",32,String]), Args).
-error(String) -> error_logger:error_msg(lists:flatten(["[kvs]",32,String])).
+info(String, Args) ->  error_logger:info_msg(String, Args).
+info(String) -> error_logger:info_msg(String).
+warning(String, Args) -> error_logger:warning_msg(String, Args).
+warning(String) -> error_logger:warning_msg(String).
+error(String, Args) -> error_logger:error_msg(String, Args).
+error(String) -> error_logger:error_msg(String).

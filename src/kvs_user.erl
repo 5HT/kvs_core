@@ -13,12 +13,13 @@ metainfo() ->
     ]}.
 
 handle_notice([kvs_user, user, registered], {_,_,#user{id=Who}=U}, #state{owner=Who}=State)->
+    kvs:info("[kvs_user] process registration: ~p", [U]),
     {noreply, State};
 
 handle_notice([kvs_user, user, Owner, delete], [#user{}=U], #state{owner=Owner}=State) ->
-    kvs:info("delete user: ~p", [U]),
+    kvs:info("[kvs_user] delete user: ~p", [U]),
     {noreply, State};
 
 handle_notice(Route, Message, State) -> 
-    kvs:info("unknown user notice"),
+    kvs:info("[kvs_user] unknown notice."),
     {noreply, State}.

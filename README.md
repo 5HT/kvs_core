@@ -84,16 +84,18 @@ Create database for single node:
 [kvs] Mnesia Init
 ok
 4> kvs:init_db().
-
+[{"acl",ok},{"feed",ok}]
 ```
 
-Create database joining to existing cluster:
+'init_db' output the creations of containers.
+You can also create database by joining to existing cluster:
 
 ```erlang
 3> kvs:join('kvs@synrc.com').
 ```
 
-Check table packages included into the schema:
+In that case you don't need to do 'init_db'
+To check table packages included into the schema:
 
 ```erlang
 4> kvs:dir().

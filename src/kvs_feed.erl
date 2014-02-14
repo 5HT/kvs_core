@@ -31,75 +31,86 @@ author_comments(Who) ->
 
 %% MQ API
 
-handle_notice([kvs_feed, _, Owner, entry, Eid, add],
-              [#entry{feed_id=Fid}=Entry],
-              #state{owner=Owner} = S) ->
-    case lists:keyfind(Fid,2, S#state.feeds) of false -> skip;
-    {_,_} -> add_entry(Eid,Fid,Entry) end,
+handle_notice(  [kvs_feed, _, Owner, entry, Eid, add],
+                [#entry{feed_id=Fid}=Entry],
+                #state{owner=Owner} = S) ->
 
-    {noreply, S};
+                case lists:keyfind(Fid,2, S#state.feeds) of
+                    false -> skip;
+                    {_,_} -> add_entry(Eid,Fid,Entry) end,
 
-handle_notice([kvs_feed,_, Owner, entry, {Eid, FeedName}, edit],
-              [#entry{}=Entry],
-              #state{owner=Owner, feeds=Feeds}=S) ->
-    case lists:keyfind(FeedName,1,Feeds) of false -> skip; {_,Fid}-> update_entry(Eid,Fid,Entry) end,
+                {noreply, S};
 
-    {noreply, S};
+handle_notice(  [kvs_feed,_,Owner,entry,{Eid, FeedName},edit],
+                [#entry{}=Entry],
+                #state{owner=Owner, feeds=Feeds}=S) ->
 
-handle_notice([kvs_feed,_, Owner, entry, Eid, edit],
-              [#entry{feed_id=Fid}=Entry],
-              #state{owner=Owner, feeds=Feeds}=S) ->
-    case lists:keyfind(Fid, 2, Feeds) of false -> skip;
-    {_,_} -> update_entry(Eid,Fid,Entry) end,
+                case lists:keyfind(FeedName,1,Feeds) of
+                    false -> skip;
+                    {_,Fid}-> update_entry(Eid,Fid,Entry) end,
 
-    {noreply, S};
+                {noreply, S};
 
-handle_notice([kvs_feed, Owner, entry, delete],
-              [#entry{id=Id,feed_id=Fid}=E],
-              #state{owner=Owner, feeds=Feeds}=State) ->
-    error_logger:info_msg("DELETE"),
-    case lists:keyfind(Fid,2,Feeds) of false -> ok;
-    _ ->
-        error_logger:info_msg("[kvs_feed] => Remove entry ~p from feed ~p", [Id, Fid]),
-        kvs:remove(entry, Id),
-        msg:notify([kvs_feed, entry, Id, deleted], [E]) end,
+handle_notice(  [kvs_feed,user,Owner,entry,Eid,edit],
+                [#entry{feed_id=Fid}=Entry],
+                #state{owner=Owner,feeds=Feeds}) ->
 
-    {noreply,State};
+                case lists:keyfind(Fid, 2, Feeds) of
+                    false -> skip;
+                    {_,_} -> update_entry(Eid,Fid,Entry) end,
 
-handle_notice([kvs_feed, Owner, delete],
-              [#entry{entry_id=Eid}=E],
-              #state{owner=Owner}=State) ->
-    error_logger:info_msg("[kvs_feed] Delete all entries ~p ~p", [E#entry.entry_id, Owner]),
+                {noreply, S};
 
-    [msg:notify([kvs_feed, To, entry, delete],[Ed])
-        || #entry{to={_, To}}=Ed <- kvs:index(entry, entry_id, Eid)],
+handle_notice(  [kvs_feed, Owner, entry, delete],
+                [#entry{id=Id,feed_id=Fid}=E],
+                #state{feeds=Feeds}) ->
+                kvs:info("[kvs_feed] delete entry ~p",[Id]),
 
-    Fid = element(1,E),
-    kvs:remove(entry,{Eid, Fid}),
-    Removed = E#entry{id={Eid,Fid},feed_id=Fid},
-    msg:notify([kvs_feed, entry, {Eid, Fid}, deleted], [Removed]),
+                case lists:keyfind(Fid,2,Feeds) of
+                    false -> ok;
+                    _ -> kvs:info("[kvs_feed] => Remove entry ~p from feed ~p", [Id, Fid]),
+                         kvs:remove(entry, Id),
+                         msg:notify([kvs_feed, entry, Id, deleted], [E]) end,
 
-    {noreply, State};
+                {noreply,State};
 
-handle_notice([kvs_feed,_,Owner, comment, Cid, add],
-              [#comment{id={Cid, {_, EFid}, _}}=C],
-              #state{owner=Owner, feeds=Feeds} = S) ->
-    case lists:keyfind(EFid,2,Feeds) of false -> skip;
-    {_,_}-> add_comment(C) end,
+handle_notice(  [kvs_feed, Owner, delete],
+                [#entry{entry_id=Eid}=E],
+                #state{owner=Owner}=State) ->
 
-    {noreply, S};
+                kvs:info("[kvs_feed] delete all entries ~p ~p", [E#entry.entry_id, Owner]),
+
+                [ msg:notify([kvs_feed, To, entry, delete],[Ed])
+                || #entry{to={_, To}}=Ed <- kvs:index(entry, entry_id, Eid) ],
+
+                Fid = element(1,E),
+                kvs:remove(entry,{Eid, Fid}),
+                Removed = E#entry{id={Eid,Fid},feed_id=Fid},
+                msg:notify([kvs_feed, entry, {Eid, Fid}, deleted], [Removed]),
+
+                {noreply, State};
+
+handle_notice(  [kvs_feed,_,Owner, comment, Cid, add],
+                [#comment{id={Cid, {_, EFid}, _}}=C],
+                 #state{feeds=Feeds}) ->
+
+                case lists:keyfind(EFid,2,Feeds) of
+                    false -> skip;
+                    {_,_}-> add_comment(C) end,
+
+                {noreply, S};
 
 handle_notice(_Route, _Message, State) ->
-  %error_logger:error_msg("~p ===> Unknown FEED notice ~p", [State#state.owner, Route]), 
-  {noreply, State}.
+    {noreply, State}.
 
 add_comment(C) ->
-    error_logger:info_msg("[kvs_feed] Add comment ~p ~p", [C#comment.id, C#comment.feed_id]),
-    Added = case kvs:add(C#comment{feeds=[comments]}) of {error, E} -> {error, E}; {ok, Cm} -> Cm end,
+    kvs:info("[kvs_feed] add comment: ~p to feed ~p", [C#comment.id, C#comment.feed_id]),
+    Added = case kvs:add(C#comment{feeds=[comments]}) of
+        {error, E} -> {error, E}; {ok, Cm} -> Cm end,
     msg:notify([kvs_feed, comment, C#comment.id, added], [Added]).
 
 add_entry(Eid,Fid,Entry) ->
-    error_logger:info_msg("[kvs_feed] => Add entry ~p to feed ~p.", [Eid, Fid]),
+    kvs:info("[kvs_feed] add entry ~p to feed ~p.", [Eid, Fid]),
     E = Entry#entry{id = {Eid, Fid}, entry_id = Eid, feeds=[comments]},
     Added = case kvs:add(E) of {error, Err}-> {error,Err}; {ok, En} -> En end,
     msg:notify([kvs_feed, entry, {Eid, Fid}, added], [Added]).
@@ -108,7 +119,7 @@ update_entry(Eid,Fid,Entry) ->
     case kvs:get(entry, {Eid,Fid}) of
     {error,_} -> skip;
     {ok, E} ->
-        error_logger:info_msg("[kvs_feed] => Update entry ~p in ~p", [Eid, Fid]),
+        kvs:info("[kvs_feed] update entry ~p in feed ~p", [Eid, Fid]),
         Upd = E#entry{description=Entry#entry.description,
                       title = Entry#entry.title,
                       media = Entry#entry.media,
