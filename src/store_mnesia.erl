@@ -24,10 +24,10 @@ initialize() ->
     [ kvs:init(store_mnesia,Module) || Module <- kvs:modules() ],
     mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],5000).
 
-index(RecordName,Key,Value) ->
-    Table = kvs:table(RecordName),
+index(Tab,Key,Value) ->
+    Table = kvs:table(Tab),
     Index = string:str(Table#table.fields,[Key]),
-    flatten(fun() -> mnesia:index_read(RecordName,Value,Index+1) end).
+    flatten(fun() -> mnesia:index_read(Tab,Value,Index+1) end).
 
 get(RecordName, Key) -> just_one(fun() -> mnesia:read(RecordName, Key) end).
 put(Records) when is_list(Records) -> void(fun() -> lists:foreach(fun mnesia:write/1, Records) end);
