@@ -7,7 +7,7 @@
 
 start()    -> mnesia:start().
 stop()     -> mnesia:stop().
-destroy()  -> mnesia:delete_schema([node()]), ok.
+destroy()  -> [mnesia:delete_table(list_to_atom(T))||{_,T}<-kvs:dir()], mnesia:delete_schema([node()]), ok.
 version()  -> {version,"KVS MNESIA"}.
 dir()      -> [{table,atom_to_list(T)}||T<-mnesia:system_info(local_tables)].
 join()     -> mnesia:change_table_copy_type(schema, node(), disc_copies), initialize().
@@ -35,7 +35,7 @@ put(Record) -> put([Record]).
 delete(Tab, Key) ->
     case mnesia:transaction(fun()-> mnesia:delete({Tab, Key}) end) of
         {aborted,Reason} -> {error,Reason};
-        {atomic,Result} -> ok end.
+        {atomic,_Result} -> ok end.
 count(RecordName) -> mnesia:table_info(RecordName, size).
 all(R) -> flatten(fun() -> L= mnesia:all_keys(R), [ mnesia:read({R, G}) || G <- L ] end).
 next_id(RecordName, Incr) -> mnesia:dirty_update_counter({id_seq, RecordName}, Incr).

@@ -6,7 +6,6 @@
 -include("metainfo.hrl").
 -include("comment.hrl").
 -include("state.hrl").
--define(CACHED_ENTRIES, 20).
 
 metainfo() -> 
     #schema{name=kvs,tables=[
@@ -33,11 +32,21 @@ author_comments(Who) ->
 
 handle_notice(  [kvs_feed,_,Owner,entry,{Eid,Fid},add],
                 [#entry{feed_id=Fid}=Entry],
-                #state{owner=Owner} = State) ->
+                #state{owner=Owner}=State) ->
 
-                case lists:keyfind(Fid,2, S#state.feeds) of
+                case lists:keyfind(Fid,2, State#state.feeds) of
                     false -> skip;
-                    {_,_} -> add_entry(Eid,Fid,Entry) end,
+                    {_,_} -> add_entry({Eid,Fid},Entry) end,
+
+                {noreply, State};
+
+handle_notice(  [kvs_feed,_,_,comment,Cid,add],
+                [#comment{id={Cid,{_,Fid}, _}}=Comment],
+                #state{feeds=Feeds}=State) ->
+
+                case lists:keyfind(Fid,2,Feeds) of
+                    false -> skip;
+                    {_,_}-> add_comment(Comment) end,
 
                 {noreply, State};
 
@@ -47,17 +56,7 @@ handle_notice(  [kvs_feed,_,Owner,entry,{Eid,Fid},edit],
 
                 case lists:keyfind(Fid,1,Feeds) of
                     false -> skip;
-                    {_,Fid}-> update_entry(Eid,Fid,Entry) end,
-
-                {noreply, State};
-
-handle_notice(  [kvs_feed,_,Owner,entry,Eid,edit],
-                [#entry{feed_id=Fid}=Entry],
-                #state{owner=Owner,feeds=Feeds}=State) ->
-
-                case lists:keyfind(Fid, 2, Feeds) of
-                    false -> skip;
-                    {_,_} -> update_entry(Eid,Fid,Entry) end,
+                    {_,Fid}-> update_entry({Eid,Fid},Entry) end,
 
                 {noreply, State};
 
@@ -80,36 +79,31 @@ handle_notice(  [kvs_feed,Owner,delete],
 
                 kvs:info("[kvs_feed] delete all entries ~p ~p", [Entry#entry.entry_id, Owner]),
 
-                [ msg:notify([kvs_feed, To, entry, delete],[Ed])
-                || #entry{to={_, To}}=Ed <- kvs:index(entry, entry_id, Eid) ],
+                [ msg:notify([kvs_feed,To,entry,delete],[Ed])
+                    || #entry{to={_, To}}=Ed <- kvs:index(entry, entry_id, Eid) ],
 
                 Fid = element(1,Entry),
                 kvs:remove(entry,{Eid, Fid}),
-                Removed = E#entry{id={Eid,Fid},feed_id=Fid},
-                msg:notify([kvs_feed, entry, {Eid, Fid}, deleted], [Removed]),
-
-                {noreply, State};
-
-handle_notice(  [kvs_feed,_,_,comment,Cid,add],
-                [#comment{id={Cid,{_,Fid}, _}}=Comment],
-                #state{feeds=Feeds}=State) ->
-
-                case lists:keyfind(Fid,2,Feeds) of
-                    false -> skip;
-                    {_,_}-> add_comment(Comment) end,
+                Removed = Entry#entry{id={Eid,Fid},feed_id=Fid},
+                msg:notify([kvs_feed,entry,{Eid, Fid},deleted], [Removed]),
 
                 {noreply, State};
 
 handle_notice(_Route, _Message, State) -> {noreply, State}.
 
+notify([Module|_]=Path, Message, State) ->
+    case kvs:config(feeds) of
+        enabled -> msg:notify(Path,Message);
+        _ -> Module:handle_notice(Path,Message,State) end.
+
 add_comment(Comment=#comment{}) ->
-    kvs:info("[kvs_feed] add comment: ~p to feed ~p", [C#comment.id, C#comment.feed_id]),
+    kvs:info("[kvs_feed] add comment: ~p to feed ~p", [Comment#comment.id, Comment#comment.feed_id]),
     C = Comment#comment{feeds=[comments]},
     Added = case kvs:add(C) of {error, E} -> {error, E}; {ok, Cm} -> Cm end,
     msg:notify([kvs_feed, comment, C#comment.id, added], [Added]).
 
 add_entry({Eid,Fid},Entry=#entry{}) ->
-    kvs:info("[kvs_feed] add entry: ~p to feed ~p.", [E#entry.id, E#entry.feed_id]),
+    kvs:info("[kvs_feed] add entry: ~p to feed ~p.", [Entry#entry.id, Entry#entry.feed_id]),
     E = Entry#entry{id = {Eid, Fid}, entry_id = Eid, feeds=[comments]},
     Added = case kvs:add(E) of {error, Err}-> {error,Err}; {ok, En} -> En end,
     msg:notify([kvs_feed, entry, E#entry.id, added], [Added]).
@@ -119,7 +113,7 @@ update_entry(Key={Eid,Fid},Entry) ->
         {error,_} -> skip;
         {ok, E} ->
             kvs:info("[kvs_feed] update entry ~p in feed ~p", [Eid,Fid]),
-            Upddated = E#entry{description=Entry#entry.description,
+            Updated = E#entry{description=Entry#entry.description,
                       title = Entry#entry.title,
                       media = Entry#entry.media,
                       etc   = Entry#entry.etc,
