@@ -223,6 +223,44 @@ And on database init
 
 It will create your custom schema.
 
+Business Logic
+--------------
+
+```erlang
+handle_notice([kvs_feed,user,Owner,entry,Eid,add], [#entry{feed_id=Fid}=Entry],#state{feeds=Feeds}) ->
+    case lists:keyfind(Fid,2, S#state.feeds) of
+        false -> skip;
+        {_,_} -> kvs_feed:add_entry(Eid,Fid,Entry) end,
+    {noreply, S};
+
+handle_notice([kvs_feed,user,Owner,entry,{Eid,FeedName},edit],[Entry],#state{feeds=Feeds}) ->
+    case lists:keyfind(FeedName,1,Feeds) of
+        false -> skip;
+        {_,Fid}-> update_entry(Eid,Fid,Entry) end,
+    {noreply, S};
+
+handle_notice([kvs_feed,user,Owner,entry,Eid,edit], [#entry{feed_id=Fid}=Entry], #state{feeds=Feeds}) ->
+    case lists:keyfind(Fid, 2, Feeds) of
+        false -> skip;
+        {_,_} -> update_entry(Eid,Fid,Entry) end,
+    {noreply, S};
+```
+
+```erlang
+add_entry(Eid,Fid,Entry) ->
+    E = Entry#entry{id = {Eid, Fid}, entry_id = Eid, feeds=[comments]},
+    Added = case kvs:add(E) of {error, Err} -> {error,Err}; {ok, En} -> En end,
+    msg:notify([kvs_feed, entry, {Eid, Fid}, added], [Added]).
+
+update_entry(Eid,Fid,Entry) -> ...
+```
+
+and call it
+
+```erlang
+msg:notify([kvs_feed, user, "maxim@synrc.com", entry, Eid, add], [#entry{}]).
+```
+
 Credits
 -------
 
