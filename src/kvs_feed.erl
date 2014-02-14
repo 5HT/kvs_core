@@ -31,25 +31,25 @@ author_comments(Who) ->
 
 %% MQ API
 
-handle_notice(  [kvs_feed, _, Owner, entry, Eid, add],
+handle_notice(  [kvs_feed,_,Owner,entry,{Eid,Fid},add],
                 [#entry{feed_id=Fid}=Entry],
-                #state{owner=Owner} = S) ->
+                #state{owner=Owner} = State) ->
 
                 case lists:keyfind(Fid,2, S#state.feeds) of
                     false -> skip;
                     {_,_} -> add_entry(Eid,Fid,Entry) end,
 
-                {noreply, S};
+                {noreply, State};
 
-handle_notice(  [kvs_feed,_,Owner,entry,{Eid, FeedName},edit],
-                [#entry{}=Entry],
-                #state{owner=Owner, feeds=Feeds}=S) ->
+handle_notice(  [kvs_feed,_,Owner,entry,{Eid,Fid},edit],
+                [#entry{feed_id=Fid}=Entry],
+                #state{owner=Owner, feeds=Feeds}=State) ->
 
-                case lists:keyfind(FeedName,1,Feeds) of
+                case lists:keyfind(Fid,1,Feeds) of
                     false -> skip;
                     {_,Fid}-> update_entry(Eid,Fid,Entry) end,
 
-                {noreply, S};
+                {noreply, State};
 
 handle_notice(  [kvs_feed,_,Owner,entry,Eid,edit],
                 [#entry{feed_id=Fid}=Entry],
@@ -62,7 +62,7 @@ handle_notice(  [kvs_feed,_,Owner,entry,Eid,edit],
                 {noreply, State};
 
 handle_notice(  [kvs_feed,_,entry,delete],
-                [#entry{id=Id,feed_id=Fid}=E],
+                [#entry{id=Id,feed_id=Fid}=Entry],
                 #state{feeds=Feeds}=State) ->
 
                 kvs:info("[kvs_feed] delete entry ~p",[Id]),
@@ -70,20 +70,20 @@ handle_notice(  [kvs_feed,_,entry,delete],
                     false -> ok;
                     _ -> kvs:info("[kvs_feed] => Remove entry ~p from feed ~p", [Id, Fid]),
                          kvs:remove(entry, Id),
-                         msg:notify([kvs_feed, entry, Id, deleted], [E]) end,
+                         msg:notify([kvs_feed, entry, Id, deleted], [Entry]) end,
 
                 {noreply,State};
 
-handle_notice(  [kvs_feed, Owner, delete],
-                [#entry{entry_id=Eid}=E],
+handle_notice(  [kvs_feed,Owner,delete],
+                [#entry{entry_id=Eid}=Entry],
                 #state{owner=Owner}=State) ->
 
-                kvs:info("[kvs_feed] delete all entries ~p ~p", [E#entry.entry_id, Owner]),
+                kvs:info("[kvs_feed] delete all entries ~p ~p", [Entry#entry.entry_id, Owner]),
 
                 [ msg:notify([kvs_feed, To, entry, delete],[Ed])
                 || #entry{to={_, To}}=Ed <- kvs:index(entry, entry_id, Eid) ],
 
-                Fid = element(1,E),
+                Fid = element(1,Entry),
                 kvs:remove(entry,{Eid, Fid}),
                 Removed = E#entry{id={Eid,Fid},feed_id=Fid},
                 msg:notify([kvs_feed, entry, {Eid, Fid}, deleted], [Removed]),
@@ -91,39 +91,38 @@ handle_notice(  [kvs_feed, Owner, delete],
                 {noreply, State};
 
 handle_notice(  [kvs_feed,_,_,comment,Cid,add],
-                [#comment{id={Cid,{_, EFid}, _}}=C],
+                [#comment{id={Cid,{_,Fid}, _}}=Comment],
                 #state{feeds=Feeds}=State) ->
 
-                case lists:keyfind(EFid,2,Feeds) of
+                case lists:keyfind(Fid,2,Feeds) of
                     false -> skip;
-                    {_,_}-> add_comment(C) end,
+                    {_,_}-> add_comment(Comment) end,
 
                 {noreply, State};
 
-handle_notice(_Route, _Message, State) ->
-    {noreply, State}.
+handle_notice(_Route, _Message, State) -> {noreply, State}.
 
-add_comment(C) ->
+add_comment(Comment=#comment{}) ->
     kvs:info("[kvs_feed] add comment: ~p to feed ~p", [C#comment.id, C#comment.feed_id]),
-    Added = case kvs:add(C#comment{feeds=[comments]}) of
-        {error, E} -> {error, E}; {ok, Cm} -> Cm end,
+    C = Comment#comment{feeds=[comments]},
+    Added = case kvs:add(C) of {error, E} -> {error, E}; {ok, Cm} -> Cm end,
     msg:notify([kvs_feed, comment, C#comment.id, added], [Added]).
 
-add_entry(Eid,Fid,Entry) ->
-    kvs:info("[kvs_feed] add entry ~p to feed ~p.", [Eid, Fid]),
+add_entry({Eid,Fid},Entry=#entry{}) ->
+    kvs:info("[kvs_feed] add entry: ~p to feed ~p.", [E#entry.id, E#entry.feed_id]),
     E = Entry#entry{id = {Eid, Fid}, entry_id = Eid, feeds=[comments]},
     Added = case kvs:add(E) of {error, Err}-> {error,Err}; {ok, En} -> En end,
-    msg:notify([kvs_feed, entry, {Eid, Fid}, added], [Added]).
+    msg:notify([kvs_feed, entry, E#entry.id, added], [Added]).
 
-update_entry(Eid,Fid,Entry) ->
-    case kvs:get(entry, {Eid,Fid}) of
-    {error,_} -> skip;
-    {ok, E} ->
-        kvs:info("[kvs_feed] update entry ~p in feed ~p", [Eid, Fid]),
-        Upd = E#entry{description=Entry#entry.description,
+update_entry(Key={Eid,Fid},Entry) ->
+    case kvs:get(entry,Key) of
+        {error,_} -> skip;
+        {ok, E} ->
+            kvs:info("[kvs_feed] update entry ~p in feed ~p", [Eid,Fid]),
+            Upddated = E#entry{description=Entry#entry.description,
                       title = Entry#entry.title,
                       media = Entry#entry.media,
                       etc   = Entry#entry.etc,
                       type  = Entry#entry.type},
-        kvs:put(Upd),
-        msg:notify([kvs_feed, entry, {Eid, Fid}, updated], [Upd]) end.
+            kvs:put(Updated),
+            msg:notify([kvs_feed,entry,Key,updated], [Updated]) end.
