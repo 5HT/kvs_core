@@ -17,7 +17,6 @@ unsubscribe(Who, Whom) ->
         true  -> kvs:delete(subscription, {Who, Whom});
         false -> skip end.
 
-subscriptions(undefined)-> [];
 subscriptions(#user{username = UId}) -> subscriptions(UId);
 subscriptions(UId) -> kvs:index(subscription, who, UId).
 subscribed(Who) -> kvs:index(subscription, whom, Who).
