@@ -3,7 +3,7 @@
 
 
 -define(CONTAINER, id, top, entries_count=0).
--define(ITERATOR(Container, Guard), id, container=Container, feed_id, prev, next, feeds=[], guard=Guard).
+-define(ITERATOR(Container, Guard), id, container=Container, feed_id, prev, next, feeds=[], guard=Guard, etc).
 -define(ITERATOR(Container), ?ITERATOR(Container, false)).
 
 -record(id_seq, {thing, id}).
