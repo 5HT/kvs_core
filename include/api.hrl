@@ -41,5 +41,5 @@
 
 % import/export
 
--spec load_db(Path :: string()) -> list(ok | {error,any()} | skip).
+-spec load_db(Path :: string()) -> list(ok | {error,any()}).
 -spec save_db(Path :: string()) -> ok | {error,any()}.

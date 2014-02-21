@@ -242,10 +242,7 @@ save_db(Path) ->
 load_db(Path) ->
     add_seq_ids(),
     AllEntries = kvs:load(Path),
-    [case is_tuple(E) of
-        false -> skip;
-        true ->  kvs:put(E) 
-    end || E <- AllEntries].
+    [kvs:put(E) || E <- lists:filter(fun(E) -> is_tuple(E) end ,AllEntries)].
 
 save(Dir, Value) ->
     filelib:ensure_dir(Dir),
