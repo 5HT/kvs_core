@@ -27,7 +27,7 @@ initialize() ->
 index(Tab,Key,Value) ->
     Table = kvs:table(Tab),
     Index = string:str(Table#table.fields,[Key]),
-    flatten(fun() -> mnesia:index_read(Tab,Value,Index+1) end).
+    lists:flatten(many(fun() -> mnesia:index_read(Tab,Value,Index+1) end)).
 
 get(RecordName, Key) -> just_one(fun() -> mnesia:read(RecordName, Key) end).
 put(Records) when is_list(Records) -> void(fun() -> lists:foreach(fun mnesia:write/1, Records) end);
@@ -37,7 +37,7 @@ delete(Tab, Key) ->
         {aborted,Reason} -> {error,Reason};
         {atomic,_Result} -> ok end.
 count(RecordName) -> mnesia:table_info(RecordName, size).
-all(R) -> flatten(fun() -> L= mnesia:all_keys(R), [ mnesia:read({R, G}) || G <- L ] end).
+all(R) -> lists:flatten(many(fun() -> L= mnesia:all_keys(R), [ mnesia:read({R, G}) || G <- L ] end)).
 next_id(RecordName, Incr) -> mnesia:dirty_update_counter({id_seq, RecordName}, Incr).
 many(Fun) -> case mnesia:transaction(Fun) of {atomic, R} -> R; _ -> [] end.
 void(Fun) -> case mnesia:transaction(Fun) of {atomic, ok} -> ok; {aborted, Error} -> {error, Error} end.
