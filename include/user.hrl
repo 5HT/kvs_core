@@ -13,5 +13,4 @@
         date,
         status,
         zone,
-        type,
-        etc }).
+        type }).
