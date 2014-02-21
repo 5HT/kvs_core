@@ -1,5 +1,5 @@
 -module(kvs).
-    -author('Synrc Research Center s.r.o.').
+-copyright('Synrc Research Center s.r.o.').
 -compile(export_all).
 
 -include("api.hrl").
