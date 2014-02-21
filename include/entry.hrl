@@ -13,5 +13,4 @@
         starred,
         deleted,
         media = [],
-        etc,       %% field to link additional info
         type = {user, normal}}).
