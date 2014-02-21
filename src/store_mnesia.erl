@@ -49,4 +49,4 @@ just_one(Fun) ->
         {atomic, []} -> {error, not_found};
         {atomic, [R]} -> {ok, R};
         {atomic, [_|_]} -> {error, duplicated};
-        _ -> {error, not_found} end.
+        Error -> Error end.
