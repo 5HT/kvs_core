@@ -42,11 +42,15 @@ containers() ->
         || T=#table{container=true} <- (M:metainfo())#schema.tables ]
     || M <- modules() ]).
 
-create(ContainerName) ->
-    Id = kvs:next_id(atom_to_list(ContainerName), 1),
+create(ContainerName) -> create(ContainerName, kvs:next_id(atom_to_list(ContainerName), 1)).
+
+create(ContainerName, Id) ->
+    wf:info("kvs:create: ~p",[ContainerName]),
     Instance = list_to_tuple([ContainerName|proplists:get_value(ContainerName, kvs:containers())]),
     Top = setelement(#container.id,Instance,Id),
-    ok = kvs:put(Top),
+    Top2 = setelement(#container.top,Top,undefined),
+    Top3 = setelement(#container.entries_count,Top2,0),
+    ok = kvs:put(Top3),
     Id.
 
 add(Record) when is_tuple(Record) ->
@@ -96,7 +100,7 @@ add(Record) when is_tuple(Record) ->
                     R  = setelement(#iterator.feeds, Record,
                             [ case F1 of
                                 {FN, Fd} -> {FN, Fd};
-                                _-> {F1, kvs:create(CName)}
+                                _-> {F1, kvs:create(CName,{F1,element(#iterator.id,Record)})}
                               end || F1 <- element(#iterator.feeds, Record)]),
 
                     R1 = setelement(#iterator.next,    R,  Next),
