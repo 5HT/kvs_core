@@ -4,6 +4,8 @@
         email,
         username,
         password,
+        display_name,
+        register_date,
         tokens,
         avatar,
         names,
