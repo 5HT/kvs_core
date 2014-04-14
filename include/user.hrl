@@ -6,7 +6,7 @@
         password,
         display_name,
         register_date,
-        tokens,
+        tokens = [],
         avatar,
         names,
         surnames,
