@@ -262,10 +262,11 @@ config(App, Key, Default) -> case application:get_env(App,Key) of
                               undefined -> Default;
                               {ok,V} -> V end.
 
--define(ALLOWED, []).
+log_modules() -> [].
+-define(ALLOWED, (config(kvs,log_modules,kvs))).
 
 log(Module, String, Args, Fun) ->
-    case lists:member(Module,?ALLOWED) of
+    case lists:member(Module,?ALLOWED:log_modules()) of
          true -> error_logger:Fun(String, Args);
          false -> skip end.
 
@@ -280,3 +281,4 @@ warning(String) -> log(?MODULE,String, [], warning_msg).
 error(Module,String, Args) -> log(Module, String, Args, error_msg).
 error(String, Args) -> log(?MODULE, String, Args, error_msg).
 error(String) -> log(?MODULE, String, [], error_msg).
+
