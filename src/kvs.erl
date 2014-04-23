@@ -109,11 +109,11 @@ add(Record) when is_tuple(Record) ->
 
                     kvs:put(R3),
 
-                    kvs:info("[kvs] put: ~p~n", [element(#container.id,R3)]),
+                    kvs:info(?MODULE,"[kvs] put: ~p~n", [element(#container.id,R3)]),
 
                     {ok, R3}
             end;
-        {ok, _} -> kvs:info("[kvs] entry exist while put: ~p~n", [Id]), {error, exist} end.
+        {ok, _} -> kvs:info(?MODULE,"[kvs] entry exist while put: ~p~n", [Id]), {error, exist} end.
 
 remove(RecordName, RecordId) ->
     case kvs:get(RecordName, RecordId) of
@@ -147,7 +147,7 @@ remove(RecordName, RecordId) ->
 
             kvs:put(C2),
 
-            kvs:info("[kvs] delete: ~p id: ~p~n", [RecordName, Id]),
+            kvs:info(?MODULE,"[kvs] delete: ~p id: ~p~n", [RecordName, Id]),
 
             kvs:delete(RecordName, Id) end.
 
@@ -179,7 +179,7 @@ remove(E) when is_tuple(E) ->
 
     kvs:put(C2),
 
-    kvs:info("[kvs] delete: ~p", [Id]),
+    kvs:info(?MODULE,"[kvs] delete: ~p", [Id]),
 
     kvs:delete(E).
 
@@ -226,10 +226,10 @@ get(RecordName, Key, Default) ->
     DBA=?DBA,
     case DBA:get(RecordName, Key) of
         {ok,{RecordName,Key,Value}} ->
-            kvs:info("[kvs] get config value: ~p~n", [{RecordName, Key, Value}]),
+            kvs:info(?MODULE,"[kvs] get config value: ~p~n", [{RecordName, Key, Value}]),
             {ok,Value};
         {error, _B} ->
-            kvs:info("[kvs] new config value: ~p~n", [{RecordName, Key, Default}]),
+            kvs:info(?MODULE,"[kvs] new config value: ~p~n", [{RecordName, Key, Default}]),
             DBA:put({RecordName,Key,Default}),
             {ok,Default} end.
 
@@ -262,10 +262,21 @@ config(App, Key, Default) -> case application:get_env(App,Key) of
                               undefined -> Default;
                               {ok,V} -> V end.
 
-info(String, Args) ->  error_logger:info_msg(String, Args).
-info(String) -> error_logger:info_msg(String).
-warning(String, Args) -> error_logger:warning_msg(String, Args).
-warning(String) -> error_logger:warning_msg(String).
-error(String, Args) -> error_logger:error_msg(String, Args).
-error(String) -> error_logger:error_msg(String).
+-define(ALLOWED, []).
 
+log(Module, String, Args, Fun) ->
+    case lists:member(Module,?ALLOWED) of
+         true -> error_logger:Fun(String, Args);
+         false -> skip end.
+
+info(Module,String, Args) ->  log(Module,String, Args, info_msg).
+info(String, Args) -> log(?MODULE, String, Args, info_msg).
+info(String) -> log(?MODULE, String, [], info_msg).
+
+warning(Module,String, Args) -> log(Module, String, Args, warning_msg).
+warning(String, Args) -> log(?MODULE, String, Args, warning_msg).
+warning(String) -> log(?MODULE,String, [], warning_msg).
+
+error(Module,String, Args) -> log(Module, String, Args, error_msg).
+error(String, Args) -> log(?MODULE, String, Args, error_msg).
+error(String) -> log(?MODULE, String, [], error_msg).

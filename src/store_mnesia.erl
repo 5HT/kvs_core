@@ -19,7 +19,7 @@ join(Node) ->
                                || T <- mnesia:system_info(tables)], Node==N].
 
 initialize() ->
-    kvs:info("[store_mnesia] mnesia init.~n"),
+    kvs:info(?MODULE,"[store_mnesia] mnesia init.~n"),
     mnesia:create_schema([node()]),
     [ kvs:init(store_mnesia,Module) || Module <- kvs:modules() ],
     mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],5000).
