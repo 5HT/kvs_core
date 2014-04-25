@@ -27,7 +27,7 @@ join() -> DBA = ?DBA, DBA:join().
 join(Node) -> DBA = ?DBA, DBA:join(Node).
 init(Backend, Module) ->
     [ begin
-        Backend:create_table(T#table.name, [{attributes,T#table.fields},{disc_copies, [node()]}]),
+        Backend:create_table(T#table.name, [{attributes,T#table.fields},{T#table.copy_type, [node()]}]),
         [ Backend:add_table_index(T#table.name, Key) || Key <- T#table.keys ],
         T
     end || T <- (Module:metainfo())#schema.tables ].
