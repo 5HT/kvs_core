@@ -11,7 +11,7 @@ metainfo() ->
         #table{name=id_seq,fields=record_info(fields,id_seq),keys=[thing]}
     ]}.
 
-subscribe(Who, Whom) -> kvs:put(#subscription{key={who,whom},who = Who, whom = Whom}).
+subscribe(Who, Whom) -> kvs:put(#subscription{key={Who,Whom},who = Who, whom = Whom}).
 unsubscribe(Who, Whom) ->
     case subscribed(Who, Whom) of
         true  -> kvs:delete(subscription, {Who, Whom});
