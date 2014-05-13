@@ -17,6 +17,11 @@ Features
 * Supports Multiple backends at the same time
 * Xen Ready
 
+Usage
+-----
+
+    {kvs, ".*", {git, "git://github.com/synrc/kvs_core", "HEAD"}}
+
 Overview
 --------
 
