@@ -20,6 +20,8 @@ Features
 Usage
 -----
 
+In rebar.config:
+
     {kvs, ".*", {git, "git://github.com/synrc/kvs_core", "HEAD"}}
 
 Overview
